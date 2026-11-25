@@ -1,29 +1,24 @@
-import { pool } from '../db.js';
+import { Cancion, Escucha } from '../models/index.js';
 
 const crearCancion = async (nombre) => {
-  const result = await pool.query(
-    'INSERT INTO cancion (nombre) VALUES ($1) RETURNING *',
-    [nombre]
-  );
-  return result.rows[0];
+  return await Cancion.create({ nombre });
 };
 
 const modificarCancion = async (id, nombre) => {
-  const result = await pool.query(
-    'UPDATE cancion SET nombre = $1 WHERE id = $2 RETURNING *',
-    [nombre, id]
-  );
-  return result.rows[0];
+  const cancion = await Cancion.findByPk(id);
+  if (!cancion) return null;
+  cancion.nombre = nombre;
+  await cancion.save();
+  return cancion;
 };
 
 const borrarCancion = async (id) => {
+  const cancion = await Cancion.findByPk(id);
+  if (!cancion) return null;
   // Primero sus escuchas (por la FK), después la canción
-  await pool.query('DELETE FROM escucha WHERE cancion_id = $1', [id]);
-  const result = await pool.query(
-    'DELETE FROM cancion WHERE id = $1 RETURNING *',
-    [id]
-  );
-  return result.rows[0];
+  await Escucha.destroy({ where: { cancion_id: id } });
+  await cancion.destroy();
+  return cancion;
 };
 
 export default { crearCancion, modificarCancion, borrarCancion };
